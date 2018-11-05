@@ -110,7 +110,7 @@ async def convert(ctx, *args):
         else:
             output = config.err_msg
 
-        await ctx.send(output)
+    await ctx.send(output)
 
 @client.command(pass_context=True)
 async def setdefault(ctx, *args):
@@ -137,7 +137,7 @@ async def setdefault(ctx, *args):
         else:
             output = config.err_msg
 
-        await ctx.send(output)
+    await ctx.send(output)
 
 @client.command(pass_context=True)
 async def code(ctx, *args):
@@ -152,7 +152,7 @@ async def code(ctx, *args):
             except KeyError:
                 output = config.err_msg
 
-        await ctx.send(output)
+    await ctx.send(output)
 
 @client.command(pass_context=True)
 async def help(ctx, *args):
