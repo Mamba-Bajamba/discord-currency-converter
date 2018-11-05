@@ -120,7 +120,7 @@ async def setdefault(ctx, *args):
             output = config.err_msg
 
         elif (args[1] in values) and (args[1] in values):
-            with open("config.py", "r") as f:
+            with open(abspath + "/config.py", "r") as f:
                 fileList = f.readlines()
 
                 for idx,line in enumerate(fileList):
@@ -130,7 +130,7 @@ async def setdefault(ctx, *args):
                     elif line.startswith("defaultFinalCurr"):
                         fileList[idx] = "defaultFinalCurr = '{}'\n".format(args[1])
 
-            with open("config.py", "w") as f:
+            with open(abspath + "/config.py", "w") as f:
                 f.writelines(fileList)
 
             output = 'The new default conversion is {0} to {1}'.format(config.defaultInitCurr,config.defaultFinalCurr)
