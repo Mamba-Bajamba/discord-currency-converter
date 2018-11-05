@@ -17,10 +17,12 @@ import time
 import os
 import sys
 import discord
+import sys
 from discord.ext import commands
 
 #Check for config.py file
-if os.path.isfile("./config.py"):
+abspath = os.path.dirname(os.path.abspath(__file__))
+if os.path.isfile(abspath + "/config.py"):
     import config
 else:
     sys.exit("'config.py' is required. Please add it and try again.")
