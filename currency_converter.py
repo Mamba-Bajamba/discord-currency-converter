@@ -15,11 +15,12 @@ from lxml import html
 import requests
 import time
 import os
+import sys
 import discord
 from discord.ext import commands
 
 #Check for config.py file
-if os.path.isfile("config.py"):
+if os.path.isfile("./config.py"):
     import config
 else:
     sys.exit("'config.py' is required. Please add it and try again.")
@@ -34,129 +35,129 @@ client.remove_command('help')
 
 @client.command(pass_context=True)
 async def convert(ctx, *args):
-    await client.send_typing(ctx.message.channel)
+    async with ctx.typing():
 
-    # Function that requests conversion rate
-    def conversionProcess(initCurrency,finalCurrency,initValue):
-        URL = 'https://free.currencyconverterapi.com/api/v6/convert?q={}_{}&compact=ultra'.format(initCurrency,finalCurrency)
-        page = requests.get(URL)
-        raw = page.text
+        # Function that requests conversion rate
+        def conversionProcess(initCurrency,finalCurrency,initValue):
+            URL = 'https://free.currencyconverterapi.com/api/v6/convert?q={}_{}&compact=ultra'.format(initCurrency,finalCurrency)
+            page = requests.get(URL)
+            raw = page.text
 
-        conversionRate = float(raw[11:-2])
-        finalValue = round(conversionRate*initValue, 2)
-        conversionRate = round(conversionRate, 2)
+            conversionRate = float(raw[11:-2])
+            finalValue = round(conversionRate*initValue, 2)
+            conversionRate = round(conversionRate, 2)
 
-        output = '**{0:.2f}{1}** is equal to **{2}{3}**\nThe conversion rate is **1.00{1} = {4}{3}**'.format(initValue,initCurrency,finalValue,finalCurrency,conversionRate)
+            output = '**{0:.2f}{1}** is equal to **{2}{3}**\nThe conversion rate is **1.00{1} = {4}{3}**'.format(initValue,initCurrency,finalValue,finalCurrency,conversionRate)
 
-        return output
+            return output
 
-    # Performs various checks to ensure user-entered data is of a known format
-    def inputCheck(currency1,currency2,initValue):
-        # Check that codes are within the dictionary
-        if (currency1 in values) and (currency2 in values):
-            initCurr = currency1
-            finalCurr = currency2
+        # Performs various checks to ensure user-entered data is of a known format
+        def inputCheck(currency1,currency2,initValue):
+            # Check that codes are within the dictionary
+            if (currency1 in values) and (currency2 in values):
+                initCurr = currency1
+                finalCurr = currency2
 
-            validInput = True
-            # Ensure that values entered are values and not keys
-            try:
-                testCode = countryToCurrency[currency1]
-                validInput = False
-            except KeyError:
                 validInput = True
+                # Ensure that values entered are values and not keys
                 try:
-                    testCode = countryToCurrency[currency2]
+                    testCode = countryToCurrency[currency1]
                     validInput = False
                 except KeyError:
                     validInput = True
+                    try:
+                        testCode = countryToCurrency[currency2]
+                        validInput = False
+                    except KeyError:
+                        validInput = True
 
-            # Test for no amount input or invalid amount input
-            try:
-                initVal = round(float(initValue), 2)
-            except ValueError:
-                validInput = False
+                # Test for no amount input or invalid amount input
+                try:
+                    initVal = round(float(initValue), 2)
+                except ValueError:
+                    validInput = False
 
-            if validInput:
-                output = conversionProcess(initCurr,finalCurr,initVal)
+                if validInput:
+                    output = conversionProcess(initCurr,finalCurr,initVal)
+                else:
+                    output = config.err_msg
             else:
-                output = err_msg
+                output = config.err_msg
+
+            return output
+
+
+        # If the user simply calls 'convert', default currency and init_val apply
+        if (len(args) == 0):
+            initCurr = config.defaultInitCurr
+            finalCurr = config.defaultFinalCurr
+            initVal = 1.00
+
+            output = conversionProcess(initCurr,finalCurr,initVal)
+
+        # If the user omits the amount value, it defaults to 1.00
+        elif (len(args) == 2):
+            initVal = 1.00
+            output = inputCheck(args[0],args[1],initVal)
+
+        # Regular input with init_curr,final_curr,init_val
+        elif (len(args) == 3):
+            output = inputCheck(args[0],args[1],args[2])
+
+        # If input is longer than expected, it is treated as an unknown input
         else:
-            output = err_msg
+            output = config.err_msg
 
-        return output
-
-
-    # If the user simply calls 'convert', default currency and init_val apply
-    if (len(args) == 0):
-        initCurr = config.defaultInitCurr
-        finalCurr = config.defaultFinalCurr
-        initVal = 1.00
-
-        output = conversionProcess(initCurr,finalCurr,initVal)
-
-    # If the user omits the amount value, it defaults to 1.00
-    elif (len(args) == 2):
-        initVal = 1.00
-        output = inputCheck(args[0],args[1],initVal)
-
-    # Regular input with init_curr,final_curr,init_val
-    elif (len(args) == 3):
-        output = inputCheck(args[0],args[1],args[2])
-
-    # If input is longer than expected, it is treated as an unknown input
-    else:
-        output = config.err_msg
-
-    await client.say(output)
+        await ctx.send(output)
 
 @client.command(pass_context=True)
 async def setdefault(ctx, *args):
-    await client.send_typing(ctx.message.channel)
+    async with ctx.typing():
 
-    if (len(args) != 2):
-        output = config.err_msg
+        if (len(args) != 2):
+            output = config.err_msg
 
-    elif (args[1] in values) and (args[1] in values):
-        with open("config.py", "r") as f:
-            fileList = f.readlines()
+        elif (args[1] in values) and (args[1] in values):
+            with open("config.py", "r") as f:
+                fileList = f.readlines()
 
-            for idx,line in enumerate(fileList):
-                if line.startswith("defaultInitCurr"):
-                    fileList[idx] = "defaultInitCurr = '{}'\n".format(args[0])
+                for idx,line in enumerate(fileList):
+                    if line.startswith("defaultInitCurr"):
+                        fileList[idx] = "defaultInitCurr = '{}'\n".format(args[0])
 
-                elif line.startswith("defaultFinalCurr"):
-                    fileList[idx] = "defaultFinalCurr = '{}'\n".format(args[1])
+                    elif line.startswith("defaultFinalCurr"):
+                        fileList[idx] = "defaultFinalCurr = '{}'\n".format(args[1])
 
-        with open("config.py", "w") as f:
-            f.writelines(fileList)
+            with open("config.py", "w") as f:
+                f.writelines(fileList)
 
-        output = 'The new default conversion is {0} to {1}'.format(config.defaultInitCurr,config.defaultFinalCurr)
-    else:
-        output = config.err_msg
+            output = 'The new default conversion is {0} to {1}'.format(config.defaultInitCurr,config.defaultFinalCurr)
+        else:
+            output = config.err_msg
 
-    await client.say(output)
+        await ctx.send(output)
 
 @client.command(pass_context=True)
 async def code(ctx, *args):
-    await client.send_typing(ctx.message.channel)
+    async with ctx.typing():
 
-    if (len(args) == 0):
-        output = err_msg
-    else:
-        try:
-            code = countryToCurrency[" ".join(args).capitalize()]
-            output = 'The code for {} is {}'.format(args[0],code)
-        except KeyError:
-            output = err_msg
+        if (len(args) == 0):
+            output = config.err_msg
+        else:
+            try:
+                code = countryToCurrency[" ".join(args).capitalize()]
+                output = 'The code for {} is {}'.format(args[0],code)
+            except KeyError:
+                output = config.err_msg
 
-    await client.say(output)
+        await ctx.send(output)
 
 @client.command(pass_context=True)
 async def help(ctx, *args):
 
     output = 'This bot converts currency values. The bot may be called with `{0}` followed by one of these commands:\n\t- `help`: displays this message\n\t- `list`: lists all of the countries and their respective codes\n\t- `code `*`country-name`*: sends the code of the country\n\t- `setdefault `*`initial-currency converted-currency`*: sets the default conversion to *initial-currency* to *converted-currency*\n\t- `convert`: The format of a conversion request is: *`currency-to-convert-code converted-currency-code amount-to-convert`*\nAn example:\n`{0}convert USD AUD 50`\nIf only `{0}` is entered, the default conversion will be 1{1} to {2}.'.format(config.cmd_prefix,config.defaultInitCurr,config.defaultFinalCurr)
 
-    await client.say(output)
+    await ctx.send(output)
 
 @client.command(pass_context=True)
 async def list(ctx, *args):
@@ -169,14 +170,14 @@ async def list(ctx, *args):
     outputList = [output[:1372], output[1372:2744], output[2744:-2]]
 
     for i in range(3):
-        await client.say(outputList[i])
+        await ctx.send(outputList[i])
 
 @client.command(pass_context=True)
 async def thesenate(ctx, *args):
 
     output = "**Did you ever hear the tragedy of Darth Plagueis the Wise? I thought not. It's not a story the Jedi would tell you. It's a Sith legend. Darth Plagueis was a Dark Lord of the Sith, so powerful and so wise he could use the Force to influence the midichlorians to create life... He had such a knowledge of the dark side that he could even keep the ones he cared about from dying. The dark side of the Force is a pathway to many abilities some consider to be unnatural. He became so powerful... the only thing he was afraid of was losing his power, which eventually, of course, he did. Unfortunately, he taught his apprentice everything he knew, then his apprentice killed him in his sleep. Ironic, he could save others from death, but not himself.** \n\nhttps://imgur.com/8KPtRjS"
 
-    await client.say(output)
+    await ctx.send(output)
 
 
 # Dictionary of all countries and their respective currencies
